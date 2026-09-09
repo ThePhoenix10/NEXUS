@@ -6,16 +6,18 @@ The repository includes scripts for building spatial graphs, creating cross-vali
 
 ## Repository Structure
 
-```text
 NEXUS/
 ├── data/
 │   ├── cptac/
 │   │   ├── figures/
+│   │   │   └── cptac_samples_per_tissue_origin.png
 │   │   └── scripts/
 │   │       └── build_cptac_graphs.py
 │   │
 │   └── tcga/
 │       ├── figures/
+│       │   └── tcga_samples_per_tissue_origin.png
+│       ├── scripts/
 │       ├── spatial-aware/
 │       │   └── build_spatial_aware_graphs.py
 │       ├── spatial-null/
@@ -25,22 +27,37 @@ NEXUS/
 │
 ├── interpretability/
 │   ├── figures/
+│   │   ├── spatial_aware_heatmap.png
+│   │   └── spatial_null_heatmap.png
 │   └── scripts/
 │       └── plot_spatial_attention.py
 │
 ├── models/
 │   ├── spatial-aware/
 │   │   ├── figures/
+│   │   │   ├── confusion_matrix.png
+│   │   │   ├── spatial-aware_vs_spatial-null.png
+│   │   │   ├── train_accuracy_curve.png
+│   │   │   ├── train_loss_curve.png
+│   │   │   ├── validation_accuracy_curve.png
+│   │   │   └── validation_loss_curve.png
 │   │   └── scripts/
 │   │       └── train_spatial_aware.py
 │   │
 │   └── spatial-null/
 │       ├── figures/
+│       │   ├── spatial-aware_vs_spatial-null.png
+│       │   ├── train_accuracy_curve.png
+│       │   ├── train_loss_curve.png
+│       │   ├── validation_accuracy_curve.png
+│       │   └── validation_loss_curve.png
 │       └── scripts/
 │           └── train_spatial_null.py
 │
-└── validation/
-    └── validate_cptac.py
+├── validation/
+│   └── validate_cptac.py
+│
+└── LICENSE
 ```
 
 ## Pipeline
