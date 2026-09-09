@@ -6,6 +6,7 @@ The repository includes scripts for building spatial graphs, creating cross-vali
 
 ## Repository Structure
 
+```text
 NEXUS/
 ├── data/
 │   ├── cptac/
@@ -68,7 +69,7 @@ NEXUS/
 
 Builds spatial graphs from TCGA pathology embeddings and tile coordinates.
 
-These graphs are used by:
+Output graphs are used by:
 
 - `build_tcga_labels.py`
 - `create_cv_splits.py`
@@ -119,7 +120,6 @@ The script also generates:
 - Training accuracy curves
 - Validation loss curves
 - Validation accuracy curves
-- Combined five-fold confusion matrix
 
 ### 7. Build CPTAC Graphs
 
@@ -142,79 +142,12 @@ For each CPTAC slide:
 
 For patients with multiple slides, the slide-level probability vectors are averaged again to produce a patient-level prediction.
 
-Outputs include:
-
-- Slide-level predictions
-- Patient-level predictions
-- Per-project metrics
-- Confusion matrix
-- Classification report
-- Summary metrics
-
 ### 9. Spatial Attention Visualization
 
 `plot_spatial_attention.py`
 
 Generates spatial attention visualizations for a supplied graph, model checkpoint, and whole-slide image.
 
-The script is patient-agnostic and can be used with any compatible sample.
-
-## Main Graph Inputs
-
-```text
-Spatial-aware TCGA graphs
-/workspace/data/tcga_spatial_graphs
-
-Spatial-null TCGA graphs
-/workspace/data/spatial_null_graphs
-
-CPTAC graphs
-/workspace/data/cptac_spatial_graphs
-```
-
-## Main Model Outputs
-
-```text
-Spatial-aware results
-/workspace/results/NEXUS
-
-Spatial-null results
-/workspace/results/spatial_null
-
-CPTAC validation results
-/workspace/results/cptac
-
-Spatial attention outputs
-/workspace/results/spatial_attention
-```
-
-## Requirements
-
-The code uses Python and commonly relies on:
-
-```text
-numpy
-pandas
-torch
-scikit-learn
-scipy
-matplotlib
-h5py
-tqdm
-requests
-openslide-python
-```
-
-Install dependencies as needed for your environment.
-
-## Notes
-
-- The training pipeline uses five-fold cross-validation.
-- CPTAC validation preserves the five-fold probability-averaging logic.
-- Spatial-null experiments are intended to test the contribution of native spatial tissue organization.
-- The scripts use descriptive `/workspace` paths and can also be redirected through command-line arguments where supported.
-
 ## License
-
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
