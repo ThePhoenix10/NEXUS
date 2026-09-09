@@ -12,7 +12,6 @@ import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.colors import LogNorm, LinearSegmentedColormap
 from matplotlib.ticker import MaxNLocator
 from tqdm import tqdm
 import torch
@@ -20,7 +19,7 @@ import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from sklearn.metrics import accuracy_score, f1_score, top_k_accuracy_score, confusion_matrix, classification_report
+from sklearn.metrics import accuracy_score, f1_score, top_k_accuracy_score, classification_report
 
 DEFAULT_GRAPH_DIR = '/workspace/data/spatial_null_graphs'
 DEFAULT_FUSED_ROWS = '/workspace/data/patient_fused_matrix_rows.txt'
@@ -945,16 +944,11 @@ def save_evaluation_artifacts(result, label_encoder, output_dir, prefix):
 
     class_names = label_encoder.classes_.tolist()
 
-    cm = confusion_matrix(result['y_true'], result['y_pred'], labels=np.arange(len(class_names)))
-
-    pd.DataFrame(cm, index=class_names, columns=class_names).to_csv(output_dir / f'{prefix}_confusion_matrix.csv')
-
     report = classification_report(result['y_true'], result['y_pred'], labels=np.arange(len(class_names)), target_names=class_names, output_dict=True, zero_division=0)
 
     pd.DataFrame(report).transpose().to_csv(output_dir / f'{prefix}_classification_report.csv')
 
     np.savez_compressed(output_dir / f'{prefix}_raw_outputs.npz', y_true=result['y_true'], y_pred=result['y_pred'], y_prob=result['y_prob'], patient_ids=np.asarray(result['patient_ids'], dtype=object), class_names=np.asarray(class_names, dtype=object))
-BLUE_CM_COLORS = ['#E8F4F8', '#B8D9E8', '#88BED8', '#5AA3C8', '#3D88B8', '#2A6D9D', '#1e5c8e', '#143D5E', '#0A1E2E']
 CURVE_COLORS = ['#1f77b4', '#9467bd', '#2ca02c', '#d62728', '#ff7f0e']
 
 
@@ -1008,64 +1002,6 @@ def save_combined_five_fold_curves(output_dir, n_folds=5, condition='Spatial-Nul
 
         plt.close(fig)
 
-
-def save_combined_confusion_matrix(output_dir, n_folds=5):
-    output_dir = Path(output_dir)
-
-    combined = None
-
-    for fold in range(1, n_folds + 1):
-        path = output_dir / f'fold_{fold}' / 'test_confusion_matrix.csv'
-
-        if not path.exists():
-            return
-        matrix = pd.read_csv(path, index_col=0)
-
-        combined = matrix.copy() if combined is None else combined.add(matrix, fill_value=0)
-    combined = combined.fillna(0).astype(int)
-
-    combined.to_csv(output_dir / 'combined_confusion_matrix.csv')
-
-    values = combined.values
-    positive = values[values > 0]
-
-    if positive.size == 0:
-        return
-    cmap = LinearSegmentedColormap.from_list('custom_blues', BLUE_CM_COLORS)
-
-    fig, ax = plt.subplots(figsize=(14, 12))
-
-    image = ax.imshow(values, interpolation='nearest', cmap=cmap, norm=LogNorm(vmin=max(float(positive.min()), 0.5), vmax=max(float(values.max()), 1.0)))
-
-    colorbar = plt.colorbar(image, ax=ax, fraction=0.046, pad=0.04)
-
-    colorbar.ax.tick_params(labelsize=11)
-
-    for label in colorbar.ax.get_yticklabels():
-        label.set_fontweight('bold')
-    class_names = combined.index.tolist()
-
-    ticks = list(range(len(class_names)))
-
-    ax.set_xticks(ticks)
-
-    ax.set_yticks(ticks)
-
-    ax.set_xticklabels(class_names, rotation=45, ha='right', fontsize=13, fontweight='bold')
-
-    ax.set_yticklabels(class_names, fontsize=13, fontweight='bold')
-
-    ax.set_ylabel('True Label', fontsize=14, fontweight='bold', labelpad=12)
-
-    ax.set_xlabel('Predicted Label', fontsize=14, fontweight='bold', labelpad=12)
-
-    ax.set_title('Confusion Matrix', fontsize=25, fontweight='bold', pad=20)
-
-    fig.tight_layout()
-
-    fig.savefig(output_dir / 'combined_confusion_matrix.png', dpi=600, bbox_inches='tight', facecolor='white')
-
-    plt.close(fig)
 
 
 def main():
@@ -1372,8 +1308,6 @@ def main():
 
     if args.only_fold is None:
         save_combined_five_fold_curves(output_dir=output_dir, n_folds=args.n_splits)
-
-        save_combined_confusion_matrix(output_dir=output_dir, n_folds=args.n_splits)
 
 
 if __name__ == '__main__':
