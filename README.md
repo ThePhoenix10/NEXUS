@@ -4,6 +4,36 @@ NEXUS is a spatial graph learning pipeline for cancer tissue-of-origin predictio
 
 The repository includes scripts for building spatial graphs, creating cross-validation splits, training spatial-aware and spatial-null models, generating spatial attention visualizations, and evaluating trained models on CPTAC using five-fold probability averaging.
 
+## Methodology
+
+NEXUS models the spatial organization of pathology tissue tiles to predict cancer tissue of origin.
+
+The workflow consists of:
+
+1. **Precomputed UNI2-h tissue tile embeddings**  
+   Whole-slide images are represented as `N × 1536` tile-level feature embeddings.
+
+2. **Spatial graph construction**  
+   A fixed-radius proximity graph is built from tissue tile coordinates. Each tissue tile is represented as a node, and edges connect spatially neighboring tiles.
+
+3. **Spatial Kolmogorov-Arnold Graph Attention Network**  
+   The spatial graph is processed using a graph attention architecture that learns relationships between neighboring tissue regions.
+
+4. **Attention and global mean pooling**  
+   Spatial attention pooling and global mean pooling aggregate node-level information into a slide-level representation.
+
+5. **Slide-level graph representation**  
+   The pooled graph representation is transformed into a 256-dimensional slide embedding.
+
+6. **Tissue-of-origin prediction**  
+   The slide-level representation is used to classify the predicted cancer tissue of origin.
+
+The learned attention weights can also be projected back onto the whole-slide image to provide spatial interpretability.
+
+<p align="center">
+  <img src="figures/nexus_methodology.png" alt="NEXUS Methodology" width="100%">
+</p>
+
 ## Repository Structure
 
 ```text
@@ -25,6 +55,9 @@ NEXUS/
 │       │   └── build_spatial_null_graphs.py
 │       ├── build_tcga_labels.py
 │       └── create_cv_splits.py
+│
+├── figures/
+│   └── nexus_methodology.png
 │
 ├── interpretability/
 │   ├── figures/
@@ -58,7 +91,8 @@ NEXUS/
 ├── validation/
 │   └── validate_cptac.py
 │
-└── LICENSE
+├── LICENSE
+└── README.md
 ```
 
 ## Pipeline
@@ -142,11 +176,79 @@ For each CPTAC slide:
 
 For patients with multiple slides, the slide-level probability vectors are averaged again to produce a patient-level prediction.
 
+Outputs include:
+
+- Slide-level predictions
+- Patient-level predictions
+- Per-project metrics
+- Confusion matrix
+- Classification report
+- Summary metrics
+
 ### 9. Spatial Attention Visualization
 
 `plot_spatial_attention.py`
 
 Generates spatial attention visualizations for a supplied graph, model checkpoint, and whole-slide image.
+
+The script is patient-agnostic and can be used with any compatible sample.
+
+## Main Graph Inputs
+
+The pipeline uses three primary graph sets:
+
+```text
+Spatial-aware TCGA graphs
+/workspace/data/tcga_spatial_graphs
+
+Spatial-null TCGA graphs
+/workspace/data/spatial_null_graphs
+
+CPTAC graphs
+/workspace/data/cptac_spatial_graphs
+```
+
+## Main Model Outputs
+
+```text
+Spatial-aware results
+/workspace/results/NEXUS
+
+Spatial-null results
+/workspace/results/spatial_null
+
+CPTAC validation results
+/workspace/results/cptac
+
+Spatial attention outputs
+/workspace/results/spatial_attention
+```
+
+## Requirements
+
+The code uses Python and commonly relies on:
+
+```text
+numpy
+pandas
+torch
+scikit-learn
+scipy
+matplotlib
+h5py
+tqdm
+requests
+openslide-python
+```
+
+Install dependencies as needed for your environment.
+
+## Notes
+
+- The training pipeline uses five-fold cross-validation.
+- CPTAC validation preserves the five-fold probability-averaging logic.
+- Spatial-null experiments are intended to test the contribution of native spatial tissue organization.
+- The scripts use descriptive `/workspace` paths and can also be redirected through command-line arguments where supported.
 
 ## License
 
