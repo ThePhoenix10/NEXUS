@@ -1,7 +1,7 @@
 # NEXUS
 
 <p align="center">
-  <img src="methodology.png" alt="NEXUS Methodology" width="100%">
+  <img src="NEXUS.png" alt="NEXUS Methodology" width="100%">
 </p>
 
 NEXUS is a spatial graph learning pipeline for cancer tissue-of-origin prediction using pathology foundation-model embeddings and spatial tissue organization.
