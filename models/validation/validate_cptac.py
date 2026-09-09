@@ -14,8 +14,7 @@ from tqdm import tqdm
 
 DEFAULT_RESULTS_DIR = '/workspace/results/NEXUS'
 DEFAULT_CPTAC_GRAPH_DIR = '/workspace/data/cptac_spatial_graphs'
-DEFAULT_TRAINING_SCRIPT = '/workspace/scripts/NEXUS.py'
-DEFAULT_EXTERNAL_SCRIPT = '/workspace/scripts/test_cptac_external.py'
+DEFAULT_TRAINING_SCRIPT = '/workspace/scripts/train_spatial_aware.py'
 DEFAULT_OUTPUT_DIR = '/workspace/results/cptac'
 PROJECT_TO_BIOLOGICAL_LABEL = {'cptac_brca': 'Breast', 'cptac_ccrcc': 'Kidney', 'cptac_coad': 'Colon', 'cptac_gbm': 'Brain', 'cptac_hnsc': 'Head and Neck', 'cptac_lscc': 'Lung', 'cptac_luad': 'Lung', 'cptac_luad_part1': 'Lung', 'cptac_luad_part2': 'Lung', 'cptac_ov': 'Ovary', 'cptac_pda': 'Pancreas', 'cptac_ucec': 'Uterus'}
 LABEL_ALIASES = {'Breast': ['Breast', 'BRCA'], 'Kidney': ['Kidney', 'Renal', 'KIRC', 'CCRCC'], 'Colon': ['Colon', 'COAD', 'Colorectal'], 'Brain': ['Brain', 'GBM', 'Glioma'], 'Head and Neck': ['Head and Neck', 'Head_Neck', 'HNSC', 'Head & Neck'], 'Lung': ['Lung', 'LUAD', 'LUSC', 'LSCC'], 'Ovary': ['Ovary', 'Ovarian', 'OV'], 'Pancreas': ['Pancreas', 'Pancreatic', 'PAAD', 'PDA'], 'Uterus': ['Uterus', 'Uterine', 'Endometrial', 'UCEC']}
@@ -30,7 +29,6 @@ def parse_args():
 
     parser.add_argument('--training-script', default=DEFAULT_TRAINING_SCRIPT)
 
-    parser.add_argument('--external-script', default=DEFAULT_EXTERNAL_SCRIPT, help='Existing CPTAC script. Its load_graph_features() is reused so the exact same graph/H5 loading logic is used.')
 
     parser.add_argument('--output-dir', default=DEFAULT_OUTPUT_DIR)
 
@@ -71,6 +69,43 @@ def import_module_from_path(name, path):
     spec.loader.exec_module(module)
 
     return module
+
+
+
+
+def load_graph_features(graph_path, training_module):
+    import h5py
+
+    graph = torch.load(graph_path, map_location='cpu', weights_only=False)
+
+    edge_index, edge_attr, node_indices = training_module.get_graph_components(graph)
+
+    source_h5 = Path(graph['source_h5'])
+
+    if not source_h5.exists():
+        raise FileNotFoundError(f'Source H5 does not exist: {source_h5}')
+
+    with h5py.File(source_h5, 'r') as f:
+        if 'features' not in f:
+            raise KeyError(f"'features' missing from {source_h5}")
+
+        features = np.asarray(f['features'])
+
+    if features.ndim == 3:
+        if features.shape[0] != 1:
+            raise RuntimeError(f'Unexpected feature shape {features.shape} in {source_h5}')
+        features = features[0]
+    elif features.ndim != 2:
+        raise RuntimeError(f'Unexpected feature shape {features.shape} in {source_h5}')
+
+    if node_indices is not None:
+        idx = node_indices.detach().cpu().numpy() if torch.is_tensor(node_indices) else np.asarray(node_indices)
+        idx = idx.astype(np.int64, copy=False)
+        features = features[idx]
+
+    x = torch.as_tensor(features, dtype=torch.float32)
+
+    return x, edge_index.long(), edge_attr.float(), source_h5, graph
 
 
 def normalize_text(x):
@@ -252,10 +287,6 @@ def main():
 
     training_module = import_module_from_path('train_spatial_gnn_ensemble', args.training_script)
 
-    external_module = import_module_from_path('test_cptac_external_helpers', args.external_script)
-
-    if not hasattr(external_module, 'load_graph_features'):
-        raise RuntimeError('External script does not contain load_graph_features().')
     models, classes, fold_metadata = load_fold_models(training_module, args)
 
     class_to_idx = {class_name: idx for idx, class_name in enumerate(classes)}
@@ -276,7 +307,7 @@ def main():
 
     for graph_path in tqdm(graph_files, desc='Testing CPTAC', unit='slide'):
         try:
-            x, edge_index, edge_attr, source_h5, graph = external_module.load_graph_features(graph_path, training_module)
+            x, edge_index, edge_attr, source_h5, graph = load_graph_features(graph_path, training_module)
 
             project = detect_cptac_project(graph_path, graph)
 
