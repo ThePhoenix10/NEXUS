@@ -1,4 +1,4 @@
-# NEXUS
+# NEXUS Spatially Informed Graph Attention Learning of Pathology Foundation-Model Embeddings for Cancer Tissue-of-Origin Prediction
 
 <p align="center">
   <img src="NEXUS.png" alt="NEXUS Methodology" width="100%">
